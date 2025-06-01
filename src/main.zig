@@ -20,9 +20,12 @@ pub fn main() !void {
 
     try assets.put("player", try rl.loadTexture("assets/images/spaceship.png"));
 
-    const player = sprites.Player.init(assets.get("player").?, rl.Vector2.init(settings.window_width / 2, settings.window_height / 2));
+    var player = sprites.Player.init(assets.get("player").?, rl.Vector2.init(settings.window_width / 2, settings.window_height / 2));
 
     while (!rl.windowShouldClose()) {
+        const delta_time = rl.getFrameTime();
+        player.update(delta_time);
+
         rl.beginDrawing();
         defer rl.endDrawing();
 
