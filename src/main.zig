@@ -70,6 +70,7 @@ pub fn main() !void {
         meteor_timer.update();
         try player.update(delta_time);
         discardLasers();
+        discardMeteors();
         for (lasers.items) |*laser| {
             laser.update(delta_time);
         }
@@ -120,4 +121,15 @@ fn discardLasers() void {
 fn createMeteor() !void {
     const meteor = try sprites.Meteor.init(assets.get("meteor").?);
     try meteors.append(meteor);
+}
+
+fn discardMeteors() void {
+    var i: usize = 0;
+    while (i < meteors.items.len) {
+        if (meteors.items[i].base.discard) {
+            _ = meteors.swapRemove(i);
+        } else {
+            i += 1;
+        }
+    }
 }
