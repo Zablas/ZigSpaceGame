@@ -31,9 +31,16 @@ pub fn main() !void {
     defer meteors.deinit();
 
     try assets.put("player", try rl.loadTexture("assets/images/spaceship.png"));
+    defer rl.unloadTexture(assets.get("player").?);
+
     try assets.put("star", try rl.loadTexture("assets/images/star.png"));
+    defer rl.unloadTexture(assets.get("star").?);
+
     try assets.put("laser", try rl.loadTexture("assets/images/laser.png"));
+    defer rl.unloadTexture(assets.get("laser").?);
+
     try assets.put("meteor", try rl.loadTexture("assets/images/meteor.png"));
+    defer rl.unloadTexture(assets.get("meteor").?);
 
     var meteor_timer = Timer.init(settings.meteor_timer_duration, true, true, createMeteor);
 
@@ -81,7 +88,8 @@ pub fn main() !void {
             meteor.update(delta_time);
         }
 
-        should_close = checkCollisions(player);
+        should_close = checkCollisionsPlayerMeteors(player);
+        checkCollisionsLasersMeteors();
 
         rl.beginDrawing();
         defer rl.endDrawing();
@@ -138,7 +146,7 @@ fn discardMeteors() void {
     }
 }
 
-fn checkCollisions(player: sprites.Player) bool {
+fn checkCollisionsPlayerMeteors(player: sprites.Player) bool {
     for (meteors.items) |meteor| {
         if (rl.checkCollisionCircles(player.getCenter(), player.base.collision_radius, meteor.getCenter(), meteor.base.collision_radius)) {
             return true;
@@ -146,4 +154,15 @@ fn checkCollisions(player: sprites.Player) bool {
     }
 
     return false;
+}
+
+fn checkCollisionsLasersMeteors() void {
+    for (lasers.items) |*laser| {
+        for (meteors.items) |*meteor| {
+            if (rl.checkCollisionCircleRec(meteor.getCenter(), meteor.base.collision_radius, laser.getRectangle())) {
+                laser.base.discard = true;
+                meteor.base.discard = true;
+            }
+        }
+    }
 }

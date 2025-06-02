@@ -105,6 +105,10 @@ pub const Laser = struct {
     pub fn update(self: *Self, delta_time: f32) void {
         self.base.update(delta_time);
     }
+
+    pub fn getRectangle(self: Self) rl.Rectangle {
+        return rl.Rectangle.init(self.base.position.x, self.base.position.y, self.base.position.x, self.base.position.y);
+    }
 };
 
 pub const Meteor = struct {
