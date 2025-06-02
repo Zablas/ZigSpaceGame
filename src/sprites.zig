@@ -9,6 +9,7 @@ pub const Sprite = struct {
     speed: f32,
     direction: rl.Vector2,
     size: rl.Vector2,
+    discard: bool = false,
 
     pub fn init(texture: rl.Texture, position: rl.Vector2, speed: f32, direction: rl.Vector2) Self {
         const size = rl.Vector2.init(@floatFromInt(texture.width), @floatFromInt(texture.height));
@@ -22,7 +23,9 @@ pub const Sprite = struct {
         };
     }
 
-    // pub fn update(self: *Sprite, delta_time: f64) void {}
+    pub fn update(self: *Sprite, _: f64) void {
+        self.checkDiscard();
+    }
 
     pub fn draw(self: Self) void {
         rl.drawTextureV(self.texture, self.position, .white);
@@ -31,6 +34,10 @@ pub const Sprite = struct {
     pub fn move(self: *Self, delta_time: f32) void {
         self.position.x += self.direction.x * self.speed * delta_time;
         self.position.y += self.direction.y * self.speed * delta_time;
+    }
+
+    fn checkDiscard(self: *Self) void {
+        self.discard = !(-300 < self.position.y and self.position.y < settings.window_height + 300);
     }
 };
 
@@ -88,6 +95,7 @@ pub const Laser = struct {
     }
 
     pub fn update(self: *Self, delta_time: f32) void {
+        self.base.update(delta_time);
         self.base.move(delta_time);
     }
 };

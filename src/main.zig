@@ -61,6 +61,7 @@ pub fn main() !void {
         const delta_time = rl.getFrameTime();
 
         try player.update(delta_time);
+        discardLasers();
         for (lasers.items) |*laser| {
             laser.update(delta_time);
         }
@@ -87,4 +88,15 @@ fn drawStars(stars: std.ArrayList(Star), texture: rl.Texture) void {
 fn shootLaser(position: rl.Vector2) !void {
     const laser = sprites.Laser.init(assets.get("laser").?, position);
     try lasers.append(laser);
+}
+
+fn discardLasers() void {
+    var i: usize = 0;
+    while (i < lasers.items.len) {
+        if (lasers.items[i].base.discard) {
+            _ = lasers.swapRemove(i);
+        } else {
+            i += 1;
+        }
+    }
 }
