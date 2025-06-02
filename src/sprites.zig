@@ -24,8 +24,9 @@ pub const Sprite = struct {
         };
     }
 
-    pub fn update(self: *Sprite, _: f64) void {
+    pub fn update(self: *Sprite, delta_time: f32) void {
         self.checkDiscard();
+        self.move(delta_time);
     }
 
     pub fn draw(self: Self) void {
@@ -97,13 +98,15 @@ pub const Laser = struct {
 
     pub fn update(self: *Self, delta_time: f32) void {
         self.base.update(delta_time);
-        self.base.move(delta_time);
     }
 };
 
 pub const Meteor = struct {
     const Self = @This();
+
     base: Sprite,
+    rotation: f32 = 0,
+    rectangle: rl.Rectangle,
 
     pub fn init(texture: rl.Texture) !Self {
         var prng = std.Random.DefaultPrng.init(blk: {
@@ -120,12 +123,27 @@ pub const Meteor = struct {
         const direction = rl.Vector2.init(rand.float(f32) * (0.5 + 0.5) - 0.5, 1);
         const speed = settings.meteor_speed_range[rand.intRangeAtMost(usize, 0, 1)];
 
+        const base = Sprite.init(texture, position, speed, direction);
         return .{
-            .base = Sprite.init(texture, position, speed, direction),
+            .base = base,
+            .rectangle = rl.Rectangle.init(0, 0, base.size.x, base.size.y),
         };
     }
 
     pub fn update(self: *Self, delta_time: f32) void {
-        self.base.move(delta_time);
+        self.base.update(delta_time);
+        self.rotation += 50 * delta_time;
+    }
+
+    pub fn draw(self: Self) void {
+        const destination_rectangle = rl.Rectangle.init(self.base.position.x, self.base.position.y, self.base.size.x, self.base.size.y);
+        rl.drawTexturePro(
+            self.base.texture,
+            self.rectangle,
+            destination_rectangle,
+            rl.Vector2.init(self.base.size.x / 2, self.base.size.y / 2),
+            self.rotation,
+            .white,
+        );
     }
 };

@@ -90,7 +90,7 @@ pub fn main() !void {
         }
 
         for (meteors.items) |meteor| {
-            meteor.base.draw();
+            meteor.draw();
         }
     }
 }
