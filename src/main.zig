@@ -44,6 +44,9 @@ pub fn main() !void {
     try assets.put("meteor", try rl.loadTexture("assets/images/meteor.png"));
     defer rl.unloadTexture(assets.get("meteor").?);
 
+    const font = try rl.loadFontEx("assets/font/Stormfaze.otf", settings.font_size, null);
+    defer rl.unloadFont(font);
+
     explosion_textures = std.ArrayList(rl.Texture).init(allocator);
     defer explosion_textures.deinit();
 
@@ -129,7 +132,16 @@ pub fn main() !void {
         for (explosions.items) |explosion| {
             explosion.draw();
         }
+
+        drawScore(font);
     }
+}
+
+fn drawScore(font: rl.Font) void {
+    const score: i64 = @intFromFloat(rl.getTime());
+    const text = rl.textFormat("%d", .{score});
+    const text_size = rl.measureTextEx(font, text, settings.font_size, 0);
+    rl.drawTextEx(font, text, rl.Vector2.init(settings.window_width / 2 - text_size.x / 2, 100), settings.font_size, 0, .white);
 }
 
 fn drawStars(stars: std.ArrayList(Star), texture: rl.Texture) void {
