@@ -4,6 +4,8 @@ const Timer = @import("timer.zig").Timer;
 const settings = @import("settings.zig");
 const sprites = @import("sprites.zig");
 
+const Star = struct { rl.Vector2, f32 };
+
 pub fn main() !void {
     rl.initWindow(settings.window_width, settings.window_height, "raylib-zig [core] example - basic window");
     defer rl.closeWindow();
@@ -19,6 +21,31 @@ pub fn main() !void {
     defer assets.deinit();
 
     try assets.put("player", try rl.loadTexture("assets/images/spaceship.png"));
+    try assets.put("star", try rl.loadTexture("assets/images/star.png"));
+
+    var prng = std.Random.DefaultPrng.init(blk: {
+        var seed: u64 = undefined;
+        try std.posix.getrandom(std.mem.asBytes(&seed));
+        break :blk seed;
+    });
+    const rand = prng.random();
+    // rand.intRangeAtMost(comptime T: type, at_least: T, at_most: T)
+
+    try std.io.getStdOut().writer().print("{d}", .{rand.floatExp(f32)});
+
+    var stars = std.ArrayList(Star).init(allocator);
+    defer stars.deinit();
+
+    for (0..30) |_| {
+        const star = Star{
+            rl.Vector2.init(
+                @floatFromInt(rand.intRangeAtMost(i32, 0, settings.window_width)),
+                @floatFromInt(rand.intRangeAtMost(i32, 0, settings.window_height)),
+            ),
+            rand.float(f32) * (1.2 - 0.5) + 0.5,
+        };
+        try stars.append(star);
+    }
 
     var player = sprites.Player.init(assets.get("player").?, rl.Vector2.init(settings.window_width / 2, settings.window_height / 2));
 
@@ -30,6 +57,14 @@ pub fn main() !void {
         defer rl.endDrawing();
 
         rl.clearBackground(settings.bg_color);
+
+        drawStars(stars, assets.get("star").?);
         player.draw();
+    }
+}
+
+fn drawStars(stars: std.ArrayList(Star), texture: rl.Texture) void {
+    for (stars.items) |star| {
+        rl.drawTextureEx(texture, star[0], 0, star[1], .white);
     }
 }
