@@ -107,7 +107,7 @@ pub const Laser = struct {
     }
 
     pub fn getRectangle(self: Self) rl.Rectangle {
-        return rl.Rectangle.init(self.base.position.x, self.base.position.y, self.base.position.x, self.base.position.y);
+        return rl.Rectangle.init(self.base.position.x, self.base.position.y, self.base.size.x, self.base.size.y);
     }
 };
 
@@ -159,5 +159,37 @@ pub const Meteor = struct {
             self.rotation,
             .white,
         );
+    }
+};
+
+pub const ExplosionAnimation = struct {
+    const Self = @This();
+
+    textures: std.ArrayList(rl.Texture),
+    size: rl.Vector2,
+    position: rl.Vector2,
+    index: f32 = 0,
+    discard: bool = false,
+
+    pub fn init(position: rl.Vector2, textures: std.ArrayList(rl.Texture)) Self {
+        const size = rl.Vector2.init(@floatFromInt(textures.items[0].width), @floatFromInt(textures.items[0].height));
+
+        return .{
+            .textures = textures,
+            .size = size,
+            .position = rl.Vector2.init(position.x - size.x / 2, position.y - size.y / 2),
+        };
+    }
+
+    pub fn draw(self: Self) void {
+        rl.drawTextureV(self.textures.items[@intFromFloat(self.index)], self.position, .white);
+    }
+
+    pub fn update(self: *Self, delta_time: f32) void {
+        if (@as(usize, @intFromFloat(self.index)) < self.textures.items.len - 1) {
+            self.index += 20 * delta_time;
+        } else {
+            self.discard = true;
+        }
     }
 };

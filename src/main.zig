@@ -9,6 +9,8 @@ const Star = struct { rl.Vector2, f32 };
 var assets: std.StringHashMap(rl.Texture) = undefined;
 var lasers: std.ArrayList(sprites.Laser) = undefined;
 var meteors: std.ArrayList(sprites.Meteor) = undefined;
+var explosions: std.ArrayList(sprites.ExplosionAnimation) = undefined;
+var explosion_textures: std.ArrayList(rl.Texture) = undefined;
 
 pub fn main() !void {
     rl.initWindow(settings.window_width, settings.window_height, "raylib-zig [core] example - basic window");
@@ -41,6 +43,19 @@ pub fn main() !void {
 
     try assets.put("meteor", try rl.loadTexture("assets/images/meteor.png"));
     defer rl.unloadTexture(assets.get("meteor").?);
+
+    explosion_textures = std.ArrayList(rl.Texture).init(allocator);
+    defer explosion_textures.deinit();
+
+    for (1..29) |i| {
+        const image_path = try std.fmt.allocPrintZ(allocator, "assets/images/explosion/{d}.png", .{i});
+        defer allocator.free(image_path);
+
+        try explosion_textures.append(try rl.loadTexture(image_path));
+    }
+
+    explosions = std.ArrayList(sprites.ExplosionAnimation).init(allocator);
+    defer explosions.deinit();
 
     var meteor_timer = Timer.init(settings.meteor_timer_duration, true, true, createMeteor);
 
@@ -80,6 +95,7 @@ pub fn main() !void {
         try player.update(delta_time);
         discardLasers();
         discardMeteors();
+        discardExplosions();
         for (lasers.items) |*laser| {
             laser.update(delta_time);
         }
@@ -88,8 +104,12 @@ pub fn main() !void {
             meteor.update(delta_time);
         }
 
+        for (explosions.items) |*explosion| {
+            explosion.update(delta_time);
+        }
+
         should_close = checkCollisionsPlayerMeteors(player);
-        checkCollisionsLasersMeteors();
+        try checkCollisionsLasersMeteors();
 
         rl.beginDrawing();
         defer rl.endDrawing();
@@ -104,6 +124,10 @@ pub fn main() !void {
 
         for (meteors.items) |meteor| {
             meteor.draw();
+        }
+
+        for (explosions.items) |explosion| {
+            explosion.draw();
         }
     }
 }
@@ -146,6 +170,17 @@ fn discardMeteors() void {
     }
 }
 
+fn discardExplosions() void {
+    var i: usize = 0;
+    while (i < explosions.items.len) {
+        if (explosions.items[i].discard) {
+            _ = explosions.swapRemove(i);
+        } else {
+            i += 1;
+        }
+    }
+}
+
 fn checkCollisionsPlayerMeteors(player: sprites.Player) bool {
     for (meteors.items) |meteor| {
         if (rl.checkCollisionCircles(player.getCenter(), player.base.collision_radius, meteor.getCenter(), meteor.base.collision_radius)) {
@@ -156,12 +191,15 @@ fn checkCollisionsPlayerMeteors(player: sprites.Player) bool {
     return false;
 }
 
-fn checkCollisionsLasersMeteors() void {
+fn checkCollisionsLasersMeteors() !void {
     for (lasers.items) |*laser| {
         for (meteors.items) |*meteor| {
             if (rl.checkCollisionCircleRec(meteor.getCenter(), meteor.base.collision_radius, laser.getRectangle())) {
                 laser.base.discard = true;
                 meteor.base.discard = true;
+
+                const position = rl.Vector2.init(laser.base.position.x - laser.base.size.x / 2, laser.base.position.y);
+                try explosions.append(sprites.ExplosionAnimation.init(position, explosion_textures));
             }
         }
     }
