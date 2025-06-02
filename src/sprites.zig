@@ -11,6 +11,7 @@ pub const Sprite = struct {
     direction: rl.Vector2,
     size: rl.Vector2,
     discard: bool = false,
+    collision_radius: f32,
 
     pub fn init(texture: rl.Texture, position: rl.Vector2, speed: f32, direction: rl.Vector2) Self {
         const size = rl.Vector2.init(@floatFromInt(texture.width), @floatFromInt(texture.height));
@@ -21,6 +22,7 @@ pub const Sprite = struct {
             .speed = speed,
             .direction = direction,
             .size = size,
+            .collision_radius = size.y / 2,
         };
     }
 
@@ -80,6 +82,10 @@ pub const Player = struct {
             try self.shoot_laser(rl.Vector2.init(self.base.position.x + self.base.size.x / 2, self.base.position.y - 60));
         }
     }
+
+    pub fn getCenter(self: Self) rl.Vector2 {
+        return rl.Vector2.init(self.base.position.x + self.base.size.x / 2, self.base.position.y + self.base.size.y / 2);
+    }
 };
 
 pub const Laser = struct {
@@ -133,6 +139,10 @@ pub const Meteor = struct {
     pub fn update(self: *Self, delta_time: f32) void {
         self.base.update(delta_time);
         self.rotation += 50 * delta_time;
+    }
+
+    pub fn getCenter(self: Self) rl.Vector2 {
+        return self.base.position;
     }
 
     pub fn draw(self: Self) void {

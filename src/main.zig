@@ -64,7 +64,9 @@ pub fn main() !void {
         shootLaser,
     );
 
-    while (!rl.windowShouldClose()) {
+    var should_close = false;
+
+    while (!rl.windowShouldClose() and !should_close) {
         const delta_time = rl.getFrameTime();
 
         meteor_timer.update();
@@ -78,6 +80,8 @@ pub fn main() !void {
         for (meteors.items) |*meteor| {
             meteor.update(delta_time);
         }
+
+        should_close = checkCollisions(player);
 
         rl.beginDrawing();
         defer rl.endDrawing();
@@ -132,4 +136,14 @@ fn discardMeteors() void {
             i += 1;
         }
     }
+}
+
+fn checkCollisions(player: sprites.Player) bool {
+    for (meteors.items) |meteor| {
+        if (rl.checkCollisionCircles(player.getCenter(), player.base.collision_radius, meteor.getCenter(), meteor.base.collision_radius)) {
+            return true;
+        }
+    }
+
+    return false;
 }
