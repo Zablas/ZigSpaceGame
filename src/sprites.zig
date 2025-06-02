@@ -1,3 +1,4 @@
+const std = @import("std");
 const rl = @import("raylib");
 const settings = @import("settings.zig");
 
@@ -96,6 +97,35 @@ pub const Laser = struct {
 
     pub fn update(self: *Self, delta_time: f32) void {
         self.base.update(delta_time);
+        self.base.move(delta_time);
+    }
+};
+
+pub const Meteor = struct {
+    const Self = @This();
+    base: Sprite,
+
+    pub fn init(texture: rl.Texture) !Self {
+        var prng = std.Random.DefaultPrng.init(blk: {
+            var seed: u64 = undefined;
+            try std.posix.getrandom(std.mem.asBytes(&seed));
+            break :blk seed;
+        });
+        const rand = prng.random();
+
+        const position = rl.Vector2.init(
+            @floatFromInt(rand.intRangeAtMost(i32, 0, settings.window_width)),
+            @floatFromInt(rand.intRangeAtMost(i32, -150, -50)),
+        );
+        const direction = rl.Vector2.init(rand.float(f32) * (0.5 + 0.5) - 0.5, 1);
+        const speed = settings.meteor_speed_range[rand.intRangeAtMost(usize, 0, 1)];
+
+        return .{
+            .base = Sprite.init(texture, position, speed, direction),
+        };
+    }
+
+    pub fn update(self: *Self, delta_time: f32) void {
         self.base.move(delta_time);
     }
 };

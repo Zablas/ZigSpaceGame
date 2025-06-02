@@ -8,6 +8,7 @@ const Star = struct { rl.Vector2, f32 };
 
 var assets: std.StringHashMap(rl.Texture) = undefined;
 var lasers: std.ArrayList(sprites.Laser) = undefined;
+var meteors: std.ArrayList(sprites.Meteor) = undefined;
 
 pub fn main() !void {
     rl.initWindow(settings.window_width, settings.window_height, "raylib-zig [core] example - basic window");
@@ -26,9 +27,15 @@ pub fn main() !void {
     lasers = std.ArrayList(sprites.Laser).init(allocator);
     defer lasers.deinit();
 
+    meteors = std.ArrayList(sprites.Meteor).init(allocator);
+    defer meteors.deinit();
+
     try assets.put("player", try rl.loadTexture("assets/images/spaceship.png"));
     try assets.put("star", try rl.loadTexture("assets/images/star.png"));
     try assets.put("laser", try rl.loadTexture("assets/images/laser.png"));
+    try assets.put("meteor", try rl.loadTexture("assets/images/meteor.png"));
+
+    var meteor_timer = Timer.init(settings.meteor_timer_duration, true, true, createMeteor);
 
     var prng = std.Random.DefaultPrng.init(blk: {
         var seed: u64 = undefined;
@@ -60,10 +67,15 @@ pub fn main() !void {
     while (!rl.windowShouldClose()) {
         const delta_time = rl.getFrameTime();
 
+        meteor_timer.update();
         try player.update(delta_time);
         discardLasers();
         for (lasers.items) |*laser| {
             laser.update(delta_time);
+        }
+
+        for (meteors.items) |*meteor| {
+            meteor.update(delta_time);
         }
 
         rl.beginDrawing();
@@ -75,6 +87,10 @@ pub fn main() !void {
         player.draw();
         for (lasers.items) |laser| {
             laser.draw();
+        }
+
+        for (meteors.items) |meteor| {
+            meteor.base.draw();
         }
     }
 }
@@ -99,4 +115,9 @@ fn discardLasers() void {
             i += 1;
         }
     }
+}
+
+fn createMeteor() !void {
+    const meteor = try sprites.Meteor.init(assets.get("meteor").?);
+    try meteors.append(meteor);
 }
