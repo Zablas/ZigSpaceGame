@@ -11,10 +11,14 @@ var lasers: std.ArrayList(sprites.Laser) = undefined;
 var meteors: std.ArrayList(sprites.Meteor) = undefined;
 var explosions: std.ArrayList(sprites.ExplosionAnimation) = undefined;
 var explosion_textures: std.ArrayList(rl.Texture) = undefined;
+var laser_sound: rl.Sound = undefined;
 
 pub fn main() !void {
     rl.initWindow(settings.window_width, settings.window_height, "raylib-zig [core] example - basic window");
     defer rl.closeWindow();
+
+    rl.initAudioDevice();
+    defer rl.closeAudioDevice();
 
     rl.setExitKey(.null);
 
@@ -22,6 +26,16 @@ pub fn main() !void {
     defer _ = gpa.deinit();
 
     const allocator = gpa.allocator();
+
+    laser_sound = try rl.loadSound("assets/audio/laser.wav");
+    defer rl.unloadSound(laser_sound);
+
+    const explosion_sound = try rl.loadSound("assets/audio/explosion.wav");
+    defer rl.unloadSound(explosion_sound);
+
+    const music = try rl.loadMusicStream("assets/audio/music.wav");
+    defer rl.unloadMusicStream(music);
+    rl.playMusicStream(music);
 
     assets = std.StringHashMap(rl.Texture).init(allocator);
     defer assets.deinit();
@@ -112,7 +126,9 @@ pub fn main() !void {
         }
 
         should_close = checkCollisionsPlayerMeteors(player);
-        try checkCollisionsLasersMeteors();
+        try checkCollisionsLasersMeteors(explosion_sound);
+
+        rl.updateMusicStream(music);
 
         rl.beginDrawing();
         defer rl.endDrawing();
@@ -153,6 +169,8 @@ fn drawStars(stars: std.ArrayList(Star), texture: rl.Texture) void {
 fn shootLaser(position: rl.Vector2) !void {
     const laser = sprites.Laser.init(assets.get("laser").?, position);
     try lasers.append(laser);
+
+    rl.playSound(laser_sound);
 }
 
 fn discardLasers() void {
@@ -203,7 +221,7 @@ fn checkCollisionsPlayerMeteors(player: sprites.Player) bool {
     return false;
 }
 
-fn checkCollisionsLasersMeteors() !void {
+fn checkCollisionsLasersMeteors(sound: rl.Sound) !void {
     for (lasers.items) |*laser| {
         for (meteors.items) |*meteor| {
             if (rl.checkCollisionCircleRec(meteor.getCenter(), meteor.base.collision_radius, laser.getRectangle())) {
@@ -212,6 +230,8 @@ fn checkCollisionsLasersMeteors() !void {
 
                 const position = rl.Vector2.init(laser.base.position.x - laser.base.size.x / 2, laser.base.position.y);
                 try explosions.append(sprites.ExplosionAnimation.init(position, explosion_textures));
+
+                rl.playSound(sound);
             }
         }
     }
