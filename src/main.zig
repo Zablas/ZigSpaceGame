@@ -6,6 +6,9 @@ const sprites = @import("sprites.zig");
 
 const Star = struct { rl.Vector2, f32 };
 
+var assets: std.StringHashMap(rl.Texture) = undefined;
+var lasers: std.ArrayList(sprites.Laser) = undefined;
+
 pub fn main() !void {
     rl.initWindow(settings.window_width, settings.window_height, "raylib-zig [core] example - basic window");
     defer rl.closeWindow();
@@ -17,11 +20,15 @@ pub fn main() !void {
 
     const allocator = gpa.allocator();
 
-    var assets = std.StringHashMap(rl.Texture).init(allocator);
+    assets = std.StringHashMap(rl.Texture).init(allocator);
     defer assets.deinit();
+
+    lasers = std.ArrayList(sprites.Laser).init(allocator);
+    defer lasers.deinit();
 
     try assets.put("player", try rl.loadTexture("assets/images/spaceship.png"));
     try assets.put("star", try rl.loadTexture("assets/images/star.png"));
+    try assets.put("laser", try rl.loadTexture("assets/images/laser.png"));
 
     var prng = std.Random.DefaultPrng.init(blk: {
         var seed: u64 = undefined;
@@ -29,9 +36,6 @@ pub fn main() !void {
         break :blk seed;
     });
     const rand = prng.random();
-    // rand.intRangeAtMost(comptime T: type, at_least: T, at_most: T)
-
-    try std.io.getStdOut().writer().print("{d}", .{rand.floatExp(f32)});
 
     var stars = std.ArrayList(Star).init(allocator);
     defer stars.deinit();
@@ -47,11 +51,19 @@ pub fn main() !void {
         try stars.append(star);
     }
 
-    var player = sprites.Player.init(assets.get("player").?, rl.Vector2.init(settings.window_width / 2, settings.window_height / 2));
+    var player = sprites.Player.init(
+        assets.get("player").?,
+        rl.Vector2.init(settings.window_width / 2, settings.window_height / 2),
+        shootLaser,
+    );
 
     while (!rl.windowShouldClose()) {
         const delta_time = rl.getFrameTime();
-        player.update(delta_time);
+
+        try player.update(delta_time);
+        for (lasers.items) |*laser| {
+            laser.update(delta_time);
+        }
 
         rl.beginDrawing();
         defer rl.endDrawing();
@@ -60,6 +72,9 @@ pub fn main() !void {
 
         drawStars(stars, assets.get("star").?);
         player.draw();
+        for (lasers.items) |laser| {
+            laser.draw();
+        }
     }
 }
 
@@ -67,4 +82,9 @@ fn drawStars(stars: std.ArrayList(Star), texture: rl.Texture) void {
     for (stars.items) |star| {
         rl.drawTextureEx(texture, star[0], 0, star[1], .white);
     }
+}
+
+fn shootLaser(position: rl.Vector2) !void {
+    const laser = sprites.Laser.init(assets.get("laser").?, position);
+    try lasers.append(laser);
 }
